@@ -11,6 +11,7 @@ const errorMiddleware = require("./middleware/error.js");
 
 app.use(
   cors({
+    allowedHeaders: ["Content-Type", "Authorization"],
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
