@@ -2,14 +2,14 @@ const sendToken = (user, res, statusCode) => {
   const token = user.getJwtToken();
 
   const options = {
-    expires: new Date(
-      new Date().getTime() + process.env.COOKIE_EXPIRE * 24 * 60 * 60
-    ),
-    httpOnly: true,
-    domain:
-      process.env.NODE_ENV === "development"
-        ? ".localhost"
-        : process.env.FRONTEND_DOMAIN,
+    // expires: new Date(
+    //   new Date().getTime() + process.env.COOKIE_EXPIRE * 24 * 60 * 60
+    // ),
+    // httpOnly: true,
+    // domain:
+    //   process.env.NODE_ENV === "development"
+    //     ? ".localhost"
+    //     : process.env.FRONTEND_DOMAIN,
   };
   console.log(statusCode, token, options);
 
