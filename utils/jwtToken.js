@@ -4,7 +4,9 @@ const sendToken = (user, res, statusCode) => {
   const token = user.getJwtToken();
 
   const options = {
-    maxAge: process.env.PASSWORD_EXPIRE * 24 * 60 * 60 * 100,
+    expires: new Date(
+      new Date().getTime() + process.env.COOKIE_EXPIRE * 24 * 60 * 60
+    ),
     httpOnly: true,
     // domain:
     //   process.env.NODE_ENV === "development"
