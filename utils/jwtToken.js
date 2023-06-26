@@ -13,7 +13,7 @@ const sendToken = (user, res, statusCode) => {
   };
   console.log(statusCode, token, options);
 
-  res.status(statusCode).cookie("token", token, options).json({
+  res.status(statusCode).cookie("token", token).json({
     success: true,
     token,
     user,
