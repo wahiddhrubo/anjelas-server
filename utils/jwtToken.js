@@ -12,7 +12,7 @@ const sendToken = (user, res, statusCode) => {
       process.env.NODE_ENV === "development"
         ? ".localhost"
         : `.${process.env.FRONTEND_DOMAIN}`,
-    sameSite: false,
+    sameSite: "None",
   };
   console.log({ statusCode, token, options });
 
