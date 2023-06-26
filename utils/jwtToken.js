@@ -11,6 +11,7 @@ const sendToken = (user, res, statusCode) => {
         ? ".localhost"
         : process.env.FRONTEND_DOMAIN,
   };
+  console.log(statusCode, token, options);
 
   res.status(statusCode).cookie("token", token, options).json({
     success: true,
