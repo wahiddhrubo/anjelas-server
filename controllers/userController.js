@@ -88,6 +88,8 @@ exports.logout = catchAsyncError((user, res, next) => {
   const options = {
     expires: new Date(),
     httpOnly: true,
+    sameSite: "none",
+    secure: true,
   };
 
   res.status(201).cookie("token", null, options).json({
