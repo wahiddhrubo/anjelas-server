@@ -1,6 +1,5 @@
 const express = require("express");
 const {
-  createOrder,
   getAllUserOrders,
   getSingleUserOrders,
   getAllUserOrdersByStatus,
@@ -10,6 +9,10 @@ const {
   updateOrderStatus,
   payment,
   createOrUpdateReview,
+  createCODOrder,
+  createBkashOrder,
+  createNagadOrder,
+  createRocketOrder,
 } = require("../controllers/orderController.js");
 
 const {
@@ -20,7 +23,12 @@ const {
 const router = express.Router();
 
 //USER ORDERS
-router.route("/order").post(isAuthenticatedUser, createOrder);
+router
+  .route("/order/cash-on-delivery")
+  .post(isAuthenticatedUser, createCODOrder);
+router.route("/order/bkash").post(isAuthenticatedUser, createBkashOrder);
+router.route("/order/nagad").post(isAuthenticatedUser, createNagadOrder);
+router.route("/order/rocket").post(isAuthenticatedUser, createRocketOrder);
 router.route("/user/orders").get(isAuthenticatedUser, getAllUserOrders);
 
 router
