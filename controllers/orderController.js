@@ -12,7 +12,100 @@ const querystring = require("querystring");
 const crypto = require("crypto");
 
 //CREATE ORDERS
-exports.createOrder = catchAsyncError(async (req, res, next) => {
+exports.createNagadOrder = catchAsyncError(async (req, res, next) => {
+  const {
+    location,
+    deliveryCharge,
+    tax,
+    subTotal,
+    total,
+    coupon,
+    discount,
+    deliveryDate,
+    deliveryTime,
+  } = req.body;
+
+  const uID = crypto.randomBytes(6).toString("hex");
+
+  const user = await User.findById(req.user.id);
+  const cart = await Cart.findById(user.cart);
+  if (!cart.items.length) {
+    return next(new ErrorHandler("No Item Found In Cart", 404));
+  }
+
+  const order = await Order.create({
+    uID,
+    location,
+    subTotal,
+    deliveryCharge,
+    tax,
+    coupon,
+    discount,
+    total,
+    paymentMethod: "Nagad",
+    deliveryDate,
+    deliveryTime,
+    items: cart.items,
+    user: user._id,
+  });
+  user.orders.push(order._id);
+  user.save();
+  cart.items = [];
+  cart.save();
+
+  res.status(201).json({
+    success: true,
+    order,
+  });
+});
+exports.createCODOrder = catchAsyncError(async (req, res, next) => {
+  const {
+    location,
+    deliveryCharge,
+    tax,
+    subTotal,
+    total,
+    coupon,
+    discount,
+
+    deliveryDate,
+    deliveryTime,
+  } = req.body;
+
+  const uID = crypto.randomBytes(6).toString("hex");
+
+  const user = await User.findById(req.user.id);
+  const cart = await Cart.findById(user.cart);
+  if (!cart.items.length) {
+    return next(new ErrorHandler("No Item Found In Cart", 404));
+  }
+
+  const order = await Order.create({
+    uID,
+    location,
+    subTotal,
+    deliveryCharge,
+    tax,
+    coupon,
+    discount,
+    total,
+    paymentMethod: "COD",
+    deliveryDate,
+    deliveryTime,
+    items: cart.items,
+    user: user._id,
+  });
+  user.orders.push(order._id);
+  user.save();
+  cart.items = [];
+  cart.save();
+
+  res.status(201).json({
+    success: true,
+    order,
+  });
+});
+exports.createBkashOrder = catchAsyncError(async (req, res, next) => {
   const {
     location,
     deliveryCharge,
@@ -30,7 +123,6 @@ exports.createOrder = catchAsyncError(async (req, res, next) => {
 
   const user = await User.findById(req.user.id);
   const cart = await Cart.findById(user.cart);
-  console.log(cart.items.length);
   if (!cart.items.length) {
     return next(new ErrorHandler("No Item Found In Cart", 404));
   }
@@ -44,7 +136,53 @@ exports.createOrder = catchAsyncError(async (req, res, next) => {
     coupon,
     discount,
     total,
-    paymentMethod,
+    paymentMethod: "Bkash",
+    deliveryDate,
+    deliveryTime,
+    items: cart.items,
+    user: user._id,
+  });
+  user.orders.push(order._id);
+  user.save();
+  cart.items = [];
+  cart.save();
+
+  res.status(201).json({
+    success: true,
+    order,
+  });
+});
+exports.createRocketOrder = catchAsyncError(async (req, res, next) => {
+  const {
+    location,
+    deliveryCharge,
+    tax,
+    subTotal,
+    total,
+    coupon,
+    discount,
+    deliveryDate,
+    deliveryTime,
+  } = req.body;
+
+  const uID = crypto.randomBytes(6).toString("hex");
+
+  const user = await User.findById(req.user.id);
+  const cart = await Cart.findById(user.cart);
+  if (!cart.items.length) {
+    return next(new ErrorHandler("No Item Found In Cart", 404));
+  }
+
+  const order = await Order.create({
+    uID,
+    location,
+    subTotal,
+    deliveryCharge,
+    tax,
+    coupon,
+    discount,
+    total,
+    paymentMethod: "Rocket",
     deliveryDate,
     deliveryTime,
     items: cart.items,
