@@ -13,6 +13,8 @@ const {
   createBkashOrder,
   createNagadOrder,
   createRocketOrder,
+  createCoupon,
+  getCoupon,
 } = require("../controllers/orderController.js");
 
 const {
@@ -21,6 +23,12 @@ const {
 } = require("../middleware/authUser.js");
 
 const router = express.Router();
+
+// COUPONS
+router
+  .route("/coupon")
+  .post(isAuthenticatedUser, isAuthorized("admin"), createCoupon);
+router.route("/coupon/:code").get(isAuthenticatedUser, getCoupon);
 
 //USER ORDERS
 router
@@ -34,6 +42,7 @@ router.route("/user/orders").get(isAuthenticatedUser, getAllUserOrders);
 router
   .route("/user/orders/:status")
   .get(isAuthenticatedUser, getAllUserOrdersByStatus);
+
 router
   .route("/user/orders/order/:id")
   .get(isAuthenticatedUser, getSingleUserOrders);

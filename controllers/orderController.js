@@ -10,6 +10,131 @@ const axios = require("axios");
 const querystring = require("querystring");
 
 const crypto = require("crypto");
+const Coupon = require("../models/couponModel.js");
+
+// COUPONS
+
+const applyCoupon = (discount, discountType, totalAmount, deliveryCharge) => {
+  if (discountType === "percent-discount") {
+    const newTotal = totalAmount * (100 - discount) * 0.01;
+    const newDiscount = totalAmount * discount * 0.01;
+    return { newTotal, newDiscount };
+  }
+  if (discountType === "flat-discount") {
+    const newTotal = totalAmount - discount;
+    return { newTotal, newDiscount: discount };
+  }
+  if (discountType === "zero-delivery") {
+    const newTotal = totalAmount - deliveryCharge;
+    return { newTotal, newDiscount: deliveryCharge };
+  }
+};
+
+const checkCouponValidity = (coupon, totalAmount, user) => {
+  const { expires, maxUses, totalUses, brakingAmount, firstOrder } = coupon;
+  const isExpired = new Date() < expires;
+  const maxUsesReached = maxUses ? totalUses >= maxUses : false;
+  const orderAmountTooLow = brakingAmount
+    ? brakingAmount >= totalAmount
+    : false;
+  const notFirstOrder = firstOrder ? user.orders.length : false;
+  const validCoupon = !(
+    isExpired ||
+    maxUsesReached ||
+    orderAmountTooLow ||
+    notFirstOrder
+  );
+  return validCoupon;
+};
+
+exports.createCoupon = catchAsyncError(async (req, res, next) => {
+  const {
+    code,
+    discountType,
+    discount,
+    firstOrder,
+    brakingAmount,
+    maxUses,
+    expires,
+  } = req.body;
+
+  const expiry = Date(new Date().getHours() + 24 * expires);
+  console.log(expiry);
+
+  const coupon = await Coupon.create({
+    code,
+    discountType,
+    discount,
+    firstOrder,
+    brakingAmount,
+    maxUses,
+    expires: expiry,
+    totalUses: 0,
+  });
+
+  res.status(201).json({
+    success: true,
+    coupon,
+  });
+});
+exports.getCoupon = catchAsyncError(async (req, res, next) => {
+  const { totalAmount, deliveryCharge } = req.body;
+  const { code } = req.params;
+  const coupon = await Coupon.findOne({ code });
+  if (!coupon) {
+    return next(new ErrorHandler("Coupon Expired or Max Usage Reached", 404));
+  }
+  const user = await User.findById(req.user.id);
+  const {
+    expires,
+    maxUses,
+    firstOrder,
+    totalUses,
+    brakingAmount,
+    discount,
+    discountType,
+  } = coupon;
+  const today = new Date();
+
+  const isExpired = today < expires;
+
+  const maxUsesReached = maxUses ? totalUses >= maxUses : false;
+
+  if (isExpired || maxUsesReached) {
+    return next(new ErrorHandler("Coupon Expired or Max Usage Reached", 404));
+  }
+
+  const orderAmountTooLow = brakingAmount
+    ? brakingAmount >= totalAmount
+    : false;
+  if (orderAmountTooLow) {
+    return next(
+      new ErrorHandler(
+        `Please Order More Than ${brakingAmount} To Use The Coupon`,
+        404
+      )
+    );
+  }
+
+  const notFirstOrder = firstOrder ? user.orders.length : false;
+  if (notFirstOrder) {
+    return next(new ErrorHandler("Coupon Availiable Only For First User", 404));
+  }
+
+  const { newTotal, newDiscount } = applyCoupon(
+    discount,
+    discountType,
+    totalAmount,
+    deliveryCharge
+  );
+
+  res.status(201).json({
+    success: true,
+    total: newTotal,
+    discount: newDiscount,
+    coupon,
+  });
+});
 
 //CREATE ORDERS
 exports.createNagadOrder = catchAsyncError(async (req, res, next) => {
@@ -19,45 +144,102 @@ exports.createNagadOrder = catchAsyncError(async (req, res, next) => {
     tax,
     subTotal,
     total,
-    coupon,
-    discount,
+    couponCode,
     deliveryDate,
     deliveryTime,
   } = req.body;
 
-  const uID = crypto.randomBytes(6).toString("hex");
+  if (couponCode) {
+    const coupon = await Coupon.findOne({ code: couponCode });
+    console.log(coupon);
 
-  const user = await User.findById(req.user.id);
-  const cart = await Cart.findById(user.cart);
-  if (!cart.items.length) {
-    return next(new ErrorHandler("No Item Found In Cart", 404));
+    if (!coupon) {
+      return next(new ErrorHandler("Coupon Not Found", 404));
+    }
+
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+    const couponValid = checkCouponValidity(coupon, total, user);
+    if (!couponValid) {
+      return next(new ErrorHandler("Coupon Not Working", 404));
+    }
+    const { discount, discountType } = coupon;
+    const { newDiscount: totalDiscount, newTotal } = applyCoupon(
+      discount,
+      discountType,
+      total,
+      deliveryCharge,
+      user
+    );
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      coupon: couponCode,
+      discount: totalDiscount,
+      total: newTotal || total,
+      paymentMethod: "Nagad",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    coupon.totalUses += 1;
+    coupon.save();
+
+    res.status(201).json({
+      success: true,
+      order,
+    });
+  } else {
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      total,
+      paymentMethod: "Nagad",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    res.status(201).json({
+      success: true,
+      order,
+    });
   }
-
-  const order = await Order.create({
-    uID,
-    location,
-    subTotal,
-    deliveryCharge,
-    tax,
-    coupon,
-    discount,
-    total,
-    paymentMethod: "Nagad",
-    deliveryDate,
-    deliveryTime,
-    items: cart.items,
-    user: user._id,
-  });
-  user.orders.push(order._id);
-  user.save();
-  cart.items = [];
-  cart.save();
-
-  res.status(201).json({
-    success: true,
-    order,
-  });
 });
+
 exports.createCODOrder = catchAsyncError(async (req, res, next) => {
   const {
     location,
@@ -65,46 +247,100 @@ exports.createCODOrder = catchAsyncError(async (req, res, next) => {
     tax,
     subTotal,
     total,
-    coupon,
-    discount,
-
+    couponCode,
     deliveryDate,
     deliveryTime,
   } = req.body;
 
-  const uID = crypto.randomBytes(6).toString("hex");
+  if (couponCode) {
+    const coupon = await Coupon.findOne({ code: couponCode });
 
-  const user = await User.findById(req.user.id);
-  const cart = await Cart.findById(user.cart);
-  if (!cart.items.length) {
-    return next(new ErrorHandler("No Item Found In Cart", 404));
+    if (!coupon) {
+      return next(new ErrorHandler("Coupon Not Found", 404));
+    }
+
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+    const couponValid = checkCouponValidity(coupon, total, user);
+    if (!couponValid) {
+      return next(new ErrorHandler("Coupon Not Working", 404));
+    }
+    const { discount, discountType } = coupon;
+    const { newDiscount: totalDiscount, newTotal } = applyCoupon(
+      discount,
+      discountType,
+      total,
+      deliveryCharge,
+      user
+    );
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      coupon: couponCode,
+      discount: totalDiscount,
+      total: newTotal || total,
+      paymentMethod: "COD",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    coupon.totalUses += 1;
+    coupon.save();
+    res.status(201).json({
+      success: true,
+      order,
+    });
+  } else {
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      total,
+      paymentMethod: "COD",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    res.status(201).json({
+      success: true,
+      order,
+    });
   }
-
-  const order = await Order.create({
-    uID,
-    location,
-    subTotal,
-    deliveryCharge,
-    tax,
-    coupon,
-    discount,
-    total,
-    paymentMethod: "COD",
-    deliveryDate,
-    deliveryTime,
-    items: cart.items,
-    user: user._id,
-  });
-  user.orders.push(order._id);
-  user.save();
-  cart.items = [];
-  cart.save();
-
-  res.status(201).json({
-    success: true,
-    order,
-  });
 });
+
 exports.createBkashOrder = catchAsyncError(async (req, res, next) => {
   const {
     location,
@@ -112,46 +348,100 @@ exports.createBkashOrder = catchAsyncError(async (req, res, next) => {
     tax,
     subTotal,
     total,
-    coupon,
-    discount,
-    paymentMethod,
+    couponCode,
     deliveryDate,
     deliveryTime,
   } = req.body;
 
-  const uID = crypto.randomBytes(6).toString("hex");
+  if (couponCode) {
+    const coupon = await Coupon.findOne({ code: couponCode });
 
-  const user = await User.findById(req.user.id);
-  const cart = await Cart.findById(user.cart);
-  if (!cart.items.length) {
-    return next(new ErrorHandler("No Item Found In Cart", 404));
+    if (!coupon.length) {
+      return next(new ErrorHandler("Coupon Not Found", 404));
+    }
+
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+    const couponValid = checkCouponValidity(coupon, total, user);
+    if (!couponValid) {
+      return next(new ErrorHandler("Coupon Not Working", 404));
+    }
+    const { discount, discountType } = coupon;
+    const { newDiscount: totalDiscount, newTotal } = applyCoupon(
+      discount,
+      discountType,
+      total,
+      deliveryCharge,
+      user
+    );
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      coupon: couponCode,
+      discount: totalDiscount,
+      total: newTotal || total,
+      paymentMethod: "Bkash",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    coupon.totalUses += 1;
+    coupon.save();
+    res.status(201).json({
+      success: true,
+      order,
+    });
+  } else {
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      total,
+      paymentMethod: "Bkash",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    res.status(201).json({
+      success: true,
+      order,
+    });
   }
-
-  const order = await Order.create({
-    uID,
-    location,
-    subTotal,
-    deliveryCharge,
-    tax,
-    coupon,
-    discount,
-    total,
-    paymentMethod: "Bkash",
-    deliveryDate,
-    deliveryTime,
-    items: cart.items,
-    user: user._id,
-  });
-  user.orders.push(order._id);
-  user.save();
-  cart.items = [];
-  cart.save();
-
-  res.status(201).json({
-    success: true,
-    order,
-  });
 });
+
 exports.createRocketOrder = catchAsyncError(async (req, res, next) => {
   const {
     location,
@@ -159,44 +449,98 @@ exports.createRocketOrder = catchAsyncError(async (req, res, next) => {
     tax,
     subTotal,
     total,
-    coupon,
-    discount,
+    couponCode,
     deliveryDate,
     deliveryTime,
   } = req.body;
 
-  const uID = crypto.randomBytes(6).toString("hex");
+  if (couponCode) {
+    const coupon = await Coupon.findOne({ code: couponCode });
 
-  const user = await User.findById(req.user.id);
-  const cart = await Cart.findById(user.cart);
-  if (!cart.items.length) {
-    return next(new ErrorHandler("No Item Found In Cart", 404));
+    if (!coupon) {
+      return next(new ErrorHandler("Coupon Not Found", 404));
+    }
+
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+    const couponValid = checkCouponValidity(coupon, total, user);
+    if (!couponValid) {
+      return next(new ErrorHandler("Coupon Not Working", 404));
+    }
+    const { discount, discountType } = coupon;
+    const { newDiscount: totalDiscount, newTotal } = applyCoupon(
+      discount,
+      discountType,
+      total,
+      deliveryCharge,
+      user
+    );
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      coupon: couponCode,
+      discount: totalDiscount,
+      total: newTotal || total,
+      paymentMethod: "Rocket",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    coupon.totalUses += 1;
+    coupon.save();
+    res.status(201).json({
+      success: true,
+      order,
+    });
+  } else {
+    const uID = crypto.randomBytes(6).toString("hex");
+
+    const user = await User.findById(req.user.id);
+
+    const cart = await Cart.findById(user.cart);
+    if (!cart.items.length) {
+      return next(new ErrorHandler("No Item Found In Cart", 404));
+    }
+
+    const order = await Order.create({
+      uID,
+      location,
+      subTotal,
+      deliveryCharge,
+      tax,
+      total,
+      paymentMethod: "Rocket",
+      deliveryDate,
+      deliveryTime,
+      items: cart.items,
+      user: user._id,
+    });
+    user.orders.push(order._id);
+    user.save();
+    cart.items = [];
+    cart.save();
+
+    res.status(201).json({
+      success: true,
+      order,
+    });
   }
-
-  const order = await Order.create({
-    uID,
-    location,
-    subTotal,
-    deliveryCharge,
-    tax,
-    coupon,
-    discount,
-    total,
-    paymentMethod: "Rocket",
-    deliveryDate,
-    deliveryTime,
-    items: cart.items,
-    user: user._id,
-  });
-  user.orders.push(order._id);
-  user.save();
-  cart.items = [];
-  cart.save();
-
-  res.status(201).json({
-    success: true,
-    order,
-  });
 });
 
 //GET ALL ORDERS --USER
