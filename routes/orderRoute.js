@@ -32,7 +32,7 @@ router
   .get(isAuthenticatedUser, isAuthorized("admin"), getAllCoupon)
   .post(isAuthenticatedUser, isAuthorized("admin"), createCoupon)
   .delete(isAuthenticatedUser, isAuthorized("admin"), deleteCoupons);
-router.route("/coupon/:code").get(isAuthenticatedUser, getCoupon);
+router.route("/coupon/:code").post(isAuthenticatedUser, getCoupon);
 
 //USER ORDERS
 router
