@@ -16,16 +16,17 @@ const Coupon = require("../models/couponModel.js");
 
 const applyCoupon = (discount, discountType, totalAmount, deliveryCharge) => {
   if (discountType === "percent-discount") {
-    const newTotal = totalAmount * (100 - discount) * 0.01;
-    const newDiscount = totalAmount * discount * 0.01;
+    const newTotal =
+      parseFloat(totalAmount) * (100 - parseFloat(discount)) * 0.01;
+    const newDiscount = parseFloat(totalAmount) * parseFloat(discount) * 0.01;
     return { newTotal, newDiscount };
   }
   if (discountType === "flat-discount") {
-    const newTotal = totalAmount - discount;
-    return { newTotal, newDiscount: discount };
+    const newTotal = parseFloat(totalAmount) - parseFloat(discount);
+    return { newTotal, newDiscount: parseFloat(discount) };
   }
   if (discountType === "zero-delivery") {
-    const newTotal = totalAmount - deliveryCharge;
+    const newTotal = parseFloat(totalAmount) - parseFloat(deliveryCharge);
     return { newTotal, newDiscount: deliveryCharge };
   }
 };
