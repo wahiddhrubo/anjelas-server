@@ -98,7 +98,7 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
   } = coupon;
   const today = new Date();
 
-  const isExpired = today < new Date(expires);
+  const isExpired = today >= new Date(expires);
 
   const maxUsesReached = maxUses ? totalUses >= maxUses : false;
 
