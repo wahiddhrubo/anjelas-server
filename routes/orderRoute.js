@@ -15,6 +15,8 @@ const {
   createRocketOrder,
   createCoupon,
   getCoupon,
+  getAllCoupon,
+  deleteCoupons,
 } = require("../controllers/orderController.js");
 
 const {
@@ -27,7 +29,9 @@ const router = express.Router();
 // COUPONS
 router
   .route("/coupon")
-  .post(isAuthenticatedUser, isAuthorized("admin"), createCoupon);
+  .get(isAuthenticatedUser, isAuthorized("admin"), getAllCoupon)
+  .post(isAuthenticatedUser, isAuthorized("admin"), createCoupon)
+  .delete(isAuthenticatedUser, isAuthorized("admin"), deleteCoupons);
 router.route("/coupon/:code").get(isAuthenticatedUser, getCoupon);
 
 //USER ORDERS

@@ -58,9 +58,11 @@ exports.createCoupon = catchAsyncError(async (req, res, next) => {
     expires,
   } = req.body;
 
-  const expiry = Date(new Date().getHours() + 24 * expires);
-  console.log(expiry);
-
+  const expiry = new Date(new Date().getTime() + expires * 24 * 60 * 60 * 1000);
+  const oldCoupon = await Coupon.findOne({ code });
+  if (oldCoupon) {
+    return next(new ErrorHandler("Coupon  Already Registered", 400));
+  }
   const coupon = await Coupon.create({
     code,
     discountType,
@@ -82,7 +84,7 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
   const { code } = req.params;
   const coupon = await Coupon.findOne({ code });
   if (!coupon) {
-    return next(new ErrorHandler("Coupon Expired or Max Usage Reached", 404));
+    return next(new ErrorHandler("Coupon Not Found", 404));
   }
   const user = await User.findById(req.user.id);
   const {
@@ -96,7 +98,7 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
   } = coupon;
   const today = new Date();
 
-  const isExpired = today < expires;
+  const isExpired = today < new Date(expires);
 
   const maxUsesReached = maxUses ? totalUses >= maxUses : false;
 
@@ -133,6 +135,26 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
     total: newTotal,
     discount: newDiscount,
     coupon,
+  });
+});
+exports.getAllCoupon = catchAsyncError(async (req, res, next) => {
+  const coupons = await Coupon.find({});
+
+  res.status(201).json({
+    success: true,
+    coupons,
+  });
+});
+exports.deleteCoupons = catchAsyncError(async (req, res, next) => {
+  const { ids } = req.body;
+  const data = await Coupon.deleteMany({
+    _id: {
+      $in: ids,
+    },
+  });
+  res.status(201).json({
+    success: true,
+    data,
   });
 });
 
