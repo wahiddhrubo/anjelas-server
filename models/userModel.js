@@ -51,6 +51,12 @@ const userSchema = mongoose.Schema({
     ref: "Location",
     required: false,
   },
+  favourites: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "Item",
+    },
+  ],
   workLoc: {
     type: mongoose.Schema.ObjectId,
     ref: "Location",

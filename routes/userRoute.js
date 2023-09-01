@@ -33,6 +33,10 @@ const {
   createLoc,
   deleteLoc,
 } = require("../controllers/locationController");
+const {
+  addFavourite,
+  removeFavourite,
+} = require("../controllers/shopController.js");
 
 const router = express.Router();
 
@@ -47,6 +51,11 @@ router
   .route("/user")
   .post(isAuthenticatedUser, updateAccount)
   .get(isAuthenticatedUser, getAccount);
+
+router
+  .route("/user/favourite/:id")
+  .post(isAuthenticatedUser, addFavourite)
+  .delete(isAuthenticatedUser, removeFavourite);
 
 //ADMIN PRIVILIGE
 router

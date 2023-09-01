@@ -3,6 +3,7 @@ const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncError = require("../utils/catchAsyncError.js");
 const ApiOptions = require("../utils/apiOptions");
 const User = require("../models/userModel");
+const { default: mongoose } = require("mongoose");
 
 exports.createItem = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.user.id);
@@ -91,5 +92,39 @@ exports.getSingleItem = catchAsyncError(async (req, res, next) => {
   res.status(201).json({
     success: true,
     item,
+  });
+});
+
+exports.addFavourite = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  const user = await User.findById(req.user.id);
+  if (user.favourites.includes(id)) {
+    return next(new ErrorHandler("Item Already Added To Favourites", 400));
+  }
+
+  user.favourites.push(id);
+  user.save();
+
+  res.status(201).json({
+    success: true,
+    id,
+    user,
+  });
+});
+
+exports.removeFavourite = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  const user = await User.findById(req.user.id);
+
+  if (!user.favourites.includes(id)) {
+    return next(new ErrorHandler("Item is not favourite", 404));
+  }
+
+  await User.findByIdAndUpdate(req.user.id, {
+    $pull: { favourites: id },
+  });
+
+  res.status(201).json({
+    success: true,
   });
 });
