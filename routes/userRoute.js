@@ -36,6 +36,7 @@ const {
 const {
   addFavourite,
   removeFavourite,
+  getFavourite,
 } = require("../controllers/shopController.js");
 
 const router = express.Router();
@@ -56,6 +57,8 @@ router
   .route("/user/favourite/:id")
   .post(isAuthenticatedUser, addFavourite)
   .delete(isAuthenticatedUser, removeFavourite);
+
+router.route("/user/favourite").get(isAuthenticatedUser, getFavourite);
 
 //ADMIN PRIVILIGE
 router

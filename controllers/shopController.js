@@ -128,3 +128,19 @@ exports.removeFavourite = catchAsyncError(async (req, res, next) => {
     success: true,
   });
 });
+
+exports.getFavourite = catchAsyncError(async (req, res, next) => {
+  let user = await User.findById(req.user.id);
+
+  user = await User.populate(user, {
+    path: "favourites",
+    select: { name: 1, _id: 1, featuredImage: 1, "skus.price": 1 },
+  });
+
+  const favourites = user.favourites;
+
+  res.status(201).json({
+    success: true,
+    favourites,
+  });
+});
