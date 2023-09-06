@@ -18,6 +18,7 @@ exports.createHomeLoc = catchAsyncError(async (req, res, next) => {
     area,
     phone,
     user: userId,
+    type: "home",
   });
 
   const user = await User.findById(userId);
@@ -43,6 +44,7 @@ exports.createWorkLoc = catchAsyncError(async (req, res, next) => {
     area,
     phone,
     user: userId,
+    type: "work",
   });
 
   const user = await User.findById(userId);
@@ -103,5 +105,16 @@ exports.deleteLoc = catchAsyncError(async (req, res, next) => {
 
   res.status(201).json({
     success: true,
+  });
+});
+
+exports.getUserLoc = catchAsyncError(async (req, res, next) => {
+  const userId = req.user.id;
+
+  const locations = await Location.find({ user: userId });
+
+  res.status(201).json({
+    success: true,
+    locations,
   });
 });

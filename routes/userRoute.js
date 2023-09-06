@@ -32,6 +32,7 @@ const {
   createWorkLoc,
   createLoc,
   deleteLoc,
+  getUserLoc,
 } = require("../controllers/locationController");
 const {
   addFavourite,
@@ -81,7 +82,10 @@ router.route("/update/cart").post(isAuthenticatedUser, updateItemInCart);
 
 router.route("/user/cart/:id").delete(isAuthenticatedUser, removeItemFromCart);
 
-router.route("/user/locations").post(isAuthenticatedUser, createLoc);
+router
+  .route("/user/locations")
+  .get(isAuthenticatedUser, getUserLoc)
+  .post(isAuthenticatedUser, createLoc);
 router.route("/user/locations/home").post(isAuthenticatedUser, createHomeLoc);
 router.route("/user/locations/work").post(isAuthenticatedUser, createWorkLoc);
 router.route("/user/locations").delete(isAuthenticatedUser, deleteLoc);
