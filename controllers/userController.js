@@ -25,6 +25,21 @@ exports.createUserByEmail = catchAsyncError(async (req, res, next) => {
   sendToken(newUser, res, 201);
 });
 
+exports.createUserByEmail = catchAsyncError(async (req, res, next) => {
+  const newCart = await Cart.create({});
+  const cartId = newCart._id;
+
+  const { email, password, username } = req.body;
+  const newUser = await User.create({
+    email,
+    password,
+    username,
+    cart: cartId,
+  });
+
+  sendToken(newUser, res, 201);
+});
+
 //CREATE A USER BY ADMIN
 exports.createAdminUser = catchAsyncError(async (req, res, next) => {
   const newCart = await Cart.create({});
@@ -203,7 +218,6 @@ exports.updateAccount = catchAsyncError(async (req, res, next) => {
   res.status(201).json({
     success: true,
     message: "Updated Successfully",
-    user,
   });
 });
 

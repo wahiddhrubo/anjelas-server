@@ -7,7 +7,6 @@ class ApiOptions {
     const name = this.queryStr.keyword
       ? this.queryStr.keyword.replace("+", " ")
       : "";
-    console.log(name);
     const cat = this.queryStr.categories || "";
     const tg = this.queryStr.tags || "";
 
@@ -15,10 +14,26 @@ class ApiOptions {
 
     this.matchOptions = {
       ...(name && {
-        name: {
-          $regex: name,
-          $options: "i",
-        },
+        $or: [
+          {
+            name: {
+              $regex: name,
+              $options: "i",
+            },
+          },
+          {
+            description: {
+              $regex: name,
+              $options: "i",
+            },
+          },
+          {
+            categories: {
+              $regex: name,
+              $options: "i",
+            },
+          },
+        ],
       }),
       ...(cat && {
         categories: {
