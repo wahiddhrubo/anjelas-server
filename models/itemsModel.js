@@ -5,6 +5,10 @@ const itemSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  altNames: {
+    type: [String],
+    required: true,
+  },
   description: {
     type: String,
     required: true,

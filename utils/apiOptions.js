@@ -33,6 +33,12 @@ class ApiOptions {
               $options: "i",
             },
           },
+          {
+            altNames: {
+              $regex: name,
+              $options: "i",
+            },
+          },
         ],
       }),
       ...(cat && {
