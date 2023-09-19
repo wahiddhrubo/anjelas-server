@@ -138,6 +138,45 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
     coupon,
   });
 });
+exports.getCouponAdmin = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  console.log(id);
+  const coupon = await Coupon.findById(id);
+  if (!coupon) {
+    return next(new ErrorHandler(`Coupon Not Found ${id}`, 404));
+  }
+
+  res.status(201).json({
+    success: true,
+    coupon,
+  });
+});
+
+exports.updateCoupon = catchAsyncError(async (req, res, next) => {
+  const { expires } = req.body;
+
+  const expiry = new Date(new Date().getTime() + expires * 24 * 60 * 60 * 1000);
+
+  let coupon = await Coupon.findById(req.params.id);
+
+  if (!coupon) {
+    return next(new ErrorHandler("Coupon not found", 404));
+  }
+  coupon = await Coupon.findByIdAndUpdate(
+    req.params.id,
+    { ...req.body, ...(expires && { expires: expiry }) },
+    {
+      new: true,
+      runValidator: true,
+      useFindAndModify: false,
+    }
+  );
+  res.status(201).json({
+    success: true,
+
+    coupon,
+  });
+});
 exports.getAllCoupon = catchAsyncError(async (req, res, next) => {
   const coupons = await Coupon.find({});
 
