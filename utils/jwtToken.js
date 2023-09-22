@@ -5,8 +5,8 @@ const sendToken = (user, res, statusCode) => {
     expires: new Date(
       new Date().getTime() + process.env.COOKIE_EXPIRE * 24 * 60 * 60
     ),
-    // sameSite: "none",
-    // secure: true,
+    sameSite: "none",
+    secure: true,
   };
   console.log({ statusCode, token, options });
 
