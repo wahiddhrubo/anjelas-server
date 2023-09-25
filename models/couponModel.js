@@ -37,6 +37,7 @@ const couponSchema = mongoose.Schema({
   },
   featured: {
     type: Boolean,
+    default: false,
   },
   featuredImage: {
     public_id: {
@@ -57,4 +58,4 @@ const couponSchema = mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("COupon", couponSchema);
+module.exports = mongoose.model("Coupon", couponSchema);
