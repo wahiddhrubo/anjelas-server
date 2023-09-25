@@ -49,15 +49,7 @@ const checkCouponValidity = (coupon, totalAmount, user) => {
 };
 
 exports.createCoupon = catchAsyncError(async (req, res, next) => {
-  const {
-    code,
-    discountType,
-    discount,
-    firstOrder,
-    brakingAmount,
-    maxUses,
-    expires,
-  } = req.body;
+  const { code, expires } = req.body;
 
   const expiry = new Date(new Date().getTime() + expires * 24 * 60 * 60 * 1000);
   const oldCoupon = await Coupon.findOne({ code });
@@ -65,12 +57,7 @@ exports.createCoupon = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler("Coupon  Already Registered", 400));
   }
   const coupon = await Coupon.create({
-    code,
-    discountType,
-    discount,
-    firstOrder,
-    brakingAmount,
-    maxUses,
+    ...req.body,
     expires: expiry,
     totalUses: 0,
   });
