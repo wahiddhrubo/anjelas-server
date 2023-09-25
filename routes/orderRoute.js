@@ -19,6 +19,7 @@ const {
   deleteCoupons,
   updateCoupon,
   getCouponAdmin,
+  getFeaturedCoupon,
 } = require("../controllers/orderController.js");
 
 const {
@@ -35,6 +36,7 @@ router
   .post(isAuthenticatedUser, isAuthorized("admin"), createCoupon)
   .delete(isAuthenticatedUser, isAuthorized("admin"), deleteCoupons);
 router.route("/coupon/:code").post(isAuthenticatedUser, getCoupon);
+router.route("/featured/coupon").get(getFeaturedCoupon);
 
 router
   .route("/coupon/:id")

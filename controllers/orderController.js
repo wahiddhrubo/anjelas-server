@@ -172,6 +172,20 @@ exports.getAllCoupon = catchAsyncError(async (req, res, next) => {
     coupons,
   });
 });
+exports.getFeaturedCoupon = catchAsyncError(async (req, res, next) => {
+  const currentDate = new Date().toISOString();
+  const coupons = await Coupon.find({
+    featured: true,
+    expires: { $gte: currentDate },
+    // maxUses: { $gte: "$totalUses" },
+    $expr: { $gt: ["$maxUses", "$totalUses"] },
+  });
+
+  res.status(201).json({
+    success: true,
+    coupons,
+  });
+});
 exports.deleteCoupons = catchAsyncError(async (req, res, next) => {
   const { ids } = req.body;
   const data = await Coupon.deleteMany({
