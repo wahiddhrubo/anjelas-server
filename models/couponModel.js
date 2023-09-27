@@ -14,6 +14,15 @@ const couponSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
+  timeline: {
+    period: {
+      type: String,
+    },
+    day: {
+      type: String,
+      default: "all",
+    },
+  },
   brakingAmount: {
     type: Number,
     default: 0,

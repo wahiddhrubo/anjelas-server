@@ -125,6 +125,7 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
     coupon,
   });
 });
+
 exports.getCouponAdmin = catchAsyncError(async (req, res, next) => {
   const { id } = req.params;
   console.log(id);
@@ -164,6 +165,7 @@ exports.updateCoupon = catchAsyncError(async (req, res, next) => {
     coupon,
   });
 });
+
 exports.getAllCoupon = catchAsyncError(async (req, res, next) => {
   const coupons = await Coupon.find({});
 
@@ -172,12 +174,17 @@ exports.getAllCoupon = catchAsyncError(async (req, res, next) => {
     coupons,
   });
 });
-exports.getFeaturedCoupon = catchAsyncError(async (req, res, next) => {
+
+exports.getCouponUser = catchAsyncError(async (req, res, next) => {
+  const { featured, period, day } = req.query;
+  console.log(day);
+
   const currentDate = new Date().toISOString();
   const coupons = await Coupon.find({
-    featured: true,
+    ...(featured && { featured: true }),
+    ...(period && { "timeline.period": period }),
+    ...(day && { "timeline.day": day }),
     expires: { $gte: currentDate },
-    // maxUses: { $gte: "$totalUses" },
     $expr: { $gt: ["$maxUses", "$totalUses"] },
   });
 
@@ -186,6 +193,7 @@ exports.getFeaturedCoupon = catchAsyncError(async (req, res, next) => {
     coupons,
   });
 });
+
 exports.deleteCoupons = catchAsyncError(async (req, res, next) => {
   const { ids } = req.body;
   const data = await Coupon.deleteMany({
