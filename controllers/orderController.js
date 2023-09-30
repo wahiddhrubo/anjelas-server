@@ -32,8 +32,22 @@ const applyCoupon = (discount, discountType, totalAmount, deliveryCharge) => {
 };
 
 const checkCouponValidity = (coupon, totalAmount, user) => {
-  const { expires, maxUses, totalUses, brakingAmount, firstOrder } = coupon;
-  const isExpired = new Date() < expires;
+  const { expires, maxUses, totalUses, brakingAmount, firstOrder, timeline } =
+    coupon;
+  const { period, day } = timeline;
+  const today = new Date();
+  const isExpired = today < expires;
+  const weekday = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ][today.getDay()];
+
+  const notRightDay = day ? day !== "all" && day !== weekday : true;
   const maxUsesReached = maxUses ? totalUses >= maxUses : false;
   const orderAmountTooLow = brakingAmount
     ? brakingAmount >= totalAmount
@@ -43,7 +57,8 @@ const checkCouponValidity = (coupon, totalAmount, user) => {
     isExpired ||
     maxUsesReached ||
     orderAmountTooLow ||
-    notFirstOrder
+    notFirstOrder ||
+    notRightDay
   );
   return validCoupon;
 };
@@ -83,12 +98,31 @@ exports.getCoupon = catchAsyncError(async (req, res, next) => {
     brakingAmount,
     discount,
     discountType,
+    timeline,
   } = coupon;
+  const { period, day } = timeline;
+
   const today = new Date();
 
   const isExpired = today >= new Date(expires);
 
   const maxUsesReached = maxUses ? totalUses >= maxUses : false;
+  const weekday = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ][today.getDay()].toLowerCase();
+
+  const notRightDay = day ? day !== "all" && day !== weekday : true;
+
+  console.log(notRightDay);
+  if (notRightDay) {
+    return next(new ErrorHandler(`Coupon Cannot Be Used on ${weekday}`, 404));
+  }
 
   if (isExpired || maxUsesReached) {
     return next(new ErrorHandler("Coupon Expired or Max Usage Reached", 404));
