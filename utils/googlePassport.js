@@ -23,18 +23,6 @@ passport.use(
       req._user = userData;
 
       done(null, req);
-      //     const newCart = await Cart.create({});
-      //     const cartId = newCart._id;
-
-      //     const newUser = await User.create({
-      //       email,
-      //       username,
-      //       cart: cartId,
-      //     });
-      //     sendToken(user, res, 201);
-      // }
-
-      // sendToken(user, res, 201);
     }
   )
 );
