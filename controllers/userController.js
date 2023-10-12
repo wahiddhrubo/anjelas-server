@@ -10,19 +10,24 @@ const EmailHandler = require("../utils/emailHandler.js");
 const crypto = require("crypto");
 
 //CREATE A USER BY EMAIL
-exports.createUserByEmail = catchAsyncError(async (req, res, next) => {
-  const newCart = await Cart.create({});
-  const cartId = newCart._id;
+exports.createOrLoginUserByGoogle = catchAsyncError(async (req, res, next) => {
+  const { email, username } = req._user;
+  const user = await User.findOne({ email }).select("+password");
+  console.log(process.env.CLIENT_URL);
 
-  const { email, password, username } = req.body;
-  const newUser = await User.create({
-    email,
-    password,
-    username,
-    cart: cartId,
-  });
+  if (!user) {
+    const newCart = await Cart.create({});
+    const cartId = newCart._id;
+    const newUser = await User.create({
+      email,
+      username,
+      cart: cartId,
+    });
 
-  sendToken(newUser, res, 201);
+    sendToken(newUser, res, 201, true);
+  } else {
+    sendToken(user, res, 201, true);
+  }
 });
 
 exports.createUserByEmail = catchAsyncError(async (req, res, next) => {

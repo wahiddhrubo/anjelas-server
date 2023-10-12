@@ -1,4 +1,4 @@
-const sendToken = (user, res, statusCode) => {
+const sendToken = (user, res, statusCode, social = false) => {
   const token = user.getJwtToken();
 
   const options = {
@@ -8,13 +8,16 @@ const sendToken = (user, res, statusCode) => {
     sameSite: "none",
     secure: true,
   };
-  console.log({ statusCode, token, options });
-
-  res.status(statusCode).cookie("token", token, options).json({
-    success: true,
-    token,
-    user,
-  });
+  if (social) {
+    res.cookie("token", token, options);
+    res.redirect(process.env.CLIENT_URL);
+  } else {
+    res.status(statusCode).cookie("token", token, options).json({
+      success: true,
+      token,
+      user,
+    });
+  }
 };
 
 module.exports = sendToken;

@@ -13,8 +13,10 @@ const {
   deleteSingleUser,
   updateUserRole,
   createAdminUser,
+  createOrLoginUserByGoogle,
 } = require("../controllers/userController.js");
 
+require("../utils/googlePassport.js");
 const {
   addItemToCart,
   removeItemFromCart,
@@ -39,12 +41,32 @@ const {
   removeFavourite,
   getFavourite,
 } = require("../controllers/shopController.js");
+const passport = require("passport");
 
 const router = express.Router();
 
 //AUTHENTICATION USER
 router.route("/register").post(createUserByEmail);
 router.route("/user/login").post(loginByEmail);
+router.route("/auth/google").get(
+  passport.authenticate("google", {
+    scope: ["email", "profile"],
+    session: false,
+  })
+);
+router.route("/auth/google/callback").get(
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/auth/google/failure",
+  }),
+  createOrLoginUserByGoogle
+);
+
+router.route("/auth/google/sucess").get((req, res, next) => {
+  console.log(req._user);
+  res.send("HI");
+});
+
 router.route("/logout").get(logout);
 router.route("/user/indentify").post(forgotPassword);
 router.route("/recover/:token").post(resetPassword);
