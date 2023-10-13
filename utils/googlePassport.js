@@ -20,6 +20,8 @@ passport.use(
         username: profile.displayName || profile.name.familyName,
         authType: "oauth",
       };
+      console.log(req);
+      req.redirect = req.query.redirect;
       req._user = userData;
 
       done(null, req);

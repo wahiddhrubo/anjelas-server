@@ -10,7 +10,7 @@ const sendToken = (user, res, statusCode, social = false) => {
   };
   if (social) {
     res.cookie("token", token, options);
-    res.redirect(process.env.CLIENT_URL);
+    res.redirect("exp://192.168.0.185:8081");
   } else {
     res.status(statusCode).cookie("token", token, options).json({
       success: true,
