@@ -17,6 +17,8 @@ app.use(
       "http://localhost:3001",
       "http://localhost:3002",
       "https://anjelas-kitchen-wahiddhrubo.vercel.app",
+      "https://anjelas-kitchen-wahiddhrubos-projects.vercel.app/",
+      "https://anjelas-kitchen.vercel.app",
     ],
     credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
